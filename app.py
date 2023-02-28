@@ -4,7 +4,6 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 import os
 import cv2
 
-
 app = Flask(__name__)
 CORS(app)
 
@@ -21,19 +20,38 @@ def trim_video():
     print('VIDEO CAPTURE HERE')
     cap = cv2.VideoCapture(file_path)
     print(cap)
-    if not os.path.exists('images'):
-        os.makedirs('images')
-
-    count = 0
     while cap.isOpened():
         ret, frame = cap.read()
 
         if not ret:
             break
 
-        cv2.imwrite('images/frame{:d}.jpg'.format(count), frame)
+        img = cv2.imread(frame)
 
-        count += 1
+        # преобразование изображения в оттенки серого
+        gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # применение фильтрации Гаусса для сглаживания изображения
+        gray_img = cv2.GaussianBlur(gray_img, (5, 5), 0)
+
+        # применение алгоритма Хафа для поиска кругов на изображении
+        circles = cv2.HoughCircles(gray_img, cv2.HOUGH_GRADIENT, 1, 20,
+                                param1=50, param2=30, minRadius=0, maxRadius=0)
+
+        # проверка наличия кругов (мячей)
+        if circles is not None:
+            # если есть круги, то рисуем их на изображении
+            circles = circles[0] # получаем координаты кругов
+            for (x, y, r) in circles:
+                cv2.circle(img, (x, y), r, (0, 255, 0), 2)
+            print('Мяч для настольного тенниса найден на изображении!')
+        else:
+            print('Мяч для настольного тенниса не найден на изображении.')
+
+        # отображение изображения с выделенными кругами
+        cv2.imshow('image', img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     cap.release()
     cv2.destroyAllWindows()
